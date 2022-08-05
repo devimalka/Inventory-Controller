@@ -1,4 +1,3 @@
-from msilib.schema import Component
 from PyQt5.QtWidgets import (
     QApplication,
     QLabel,
@@ -14,7 +13,7 @@ from PyQt5.QtWidgets import (
     )
 
 import sys
-
+from QmultiThreading import Worker,WorkerSignals
 
 from sql import DBConnector
 
@@ -79,10 +78,12 @@ class SubWindow(QWidget):
     def save(self):
         ComponentID = self.dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
         ComponentID = ComponentID[0][0]
-        self.dbc.execute("insert into componentdata values('%s','%s',%d)"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID))
-        self.close()
-        self.succesmsg()
-
+        self.kwargs = {'query':"insert into componentdata values('%s','%s',%d)"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID)}
+        self.worker = Worker(self.dbc.execute,**self.kwargs)
+        self.worker.finished.connect(self.succesmsg)
+        self.worker.finished.connect(self.close)
+        self.worker.start()
+        
     def succesmsg(self):
         QMessageBox.about(self,"Message","SUCCESFULL")
 
