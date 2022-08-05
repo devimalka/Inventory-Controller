@@ -1,12 +1,22 @@
-from PyQt5.QtWidgets import QApplication,QWidget,QMainWindow,QVBoxLayout,QPushButton,QLineEdit
+from msilib.schema import Component
+from PyQt5.QtWidgets import (
+    QApplication,
+    QLabel,
+    QWidget,
+    QMainWindow,
+    QVBoxLayout,
+    QPushButton,
+    QLineEdit,
+    QGridLayout,
+    QHBoxLayout,
+    QMessageBox,
+    QComboBox
+    )
 
 import sys
 
 
-
-
-
-
+from sql import DBConnector
 
 class Mainwindow(QMainWindow):
     def __init__(self):
@@ -19,7 +29,7 @@ class Mainwindow(QMainWindow):
         self.setCentralWidget(self.mainwidget)
         
         
-        self.layout = QVBoxLayout()
+        self.layout = QGridLayout()
         self.button = QPushButton("click me")  
         self.layout.addWidget(self.button)
         self.button.clicked.connect(self.clickbtn)
@@ -31,9 +41,9 @@ class Mainwindow(QMainWindow):
     def clickbtn(self):
         self.window = SubWindow("test")
         self.window.show()
+        
 
-
-
+ 
 
 
 
@@ -41,19 +51,54 @@ class SubWindow(QWidget):
     def __init__(self,windowtitle):
         super().__init__()
         self.setWindowTitle(windowtitle)
-        self.layout = QVBoxLayout()
-        self.input = QLineEdit()
-        self.layout.addWidget(self.input)
+
+        self.mainLayout = QVBoxLayout()
         
-        self.setLayout(self.layout)
+       
+        self.serial = myLayout(QHBoxLayout,'Serial')
+        self.description = myLayout(QHBoxLayout,'Description')  
+        self.cb = QComboBox(self)
+
+        self.mainLayout.addWidget(self.cb)
+        self.mainLayout.addLayout(self.serial.layout)
+        self.mainLayout.addLayout(self.description.layout)
+        
+        self.dbc = DBConnector()
+        self.combo = self.dbc.execute("select * from component")
+        self.combolist = self.combo.fetchall()
+        for i in self.combolist:
+            self.cb.addItem(i[1])
+        self.savebutton = QPushButton("SAVE")
+        self.savebutton.clicked.connect(self.save)
+        self.mainLayout.addWidget(self.savebutton)
+        
+        self.setLayout(self.mainLayout)        
+        
+
+
+    def save(self):
+        ComponentID = self.dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
+        ComponentID = ComponentID[0][0]
+        self.dbc.execute("insert into componentdata values('%s','%s',%d)"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID))
+        self.close()
+        self.succesmsg()
+
+    def succesmsg(self):
+        QMessageBox.about(self,"Message","SUCCESFULL")
+
+class myLayout():
+    def __init__(self,Layout,labelname):
+        super().__init__()
+        self.ly = Layout
+        
+        self.layout = self.ly()
+        self.layoutLable = QLabel(labelname)
+        self.layoutLine = QLineEdit()
+        self.layoutLine.move(0,50)
+        self.layout.addWidget(self.layoutLable)
+        self.layout.addWidget(self.layoutLine)
         
         
-
-
-
-
-
-
 
 
 
