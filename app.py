@@ -27,6 +27,8 @@ from QmultiThreading import Worker,WorkerSignals
 
 from sql import DBConnector
 
+dbc = DBConnector()
+
 class Mainwindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -83,8 +85,7 @@ class SubWindow(QWidget):
         self.mainLayout.addLayout(self.description.layout)
         self.mainLayout.addWidget(self.calender)
         
-        self.dbc = DBConnector()
-        self.combo = self.dbc.execute("select * from component")
+        self.combo = dbc.execute("select * from component")
         self.combolist = self.combo.fetchall()
         for i in self.combolist:
             self.cb.addItem(i[1])
@@ -99,10 +100,10 @@ class SubWindow(QWidget):
     def save(self):
             date = self.calender.selectedDate()
             date = date.toString(Qt.ISODate)
-            ComponentID = self.dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
+            ComponentID = dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
             ComponentID = ComponentID[0][0]
             self.kwargs = {'query':"insert into componentdata(serial,description,componentID,in_date) values('%s','%s',%d,'%s')"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID,date)}
-            self.worker = Worker(self.dbc.execute,**self.kwargs)
+            self.worker = Worker(dbc.execute,**self.kwargs)
             # self.worker.finished.connect(self.succesmsg)
             self.worker.finished.connect(self.close)
             self.worker.start()
