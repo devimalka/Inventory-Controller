@@ -1,3 +1,4 @@
+from distutils.log import error
 from operator import index
 from PyQt5.QtWidgets import (
     QApplication,
@@ -13,8 +14,13 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QErrorMessage,
     QTableWidget,
-    QTableWidgetItem
+    QTableWidgetItem,
+    QAbstractScrollArea,
+    QCalendarWidget,
     )
+
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import QDate,Qt
 
 import sys
 from QmultiThreading import Worker,WorkerSignals
@@ -33,17 +39,20 @@ class Mainwindow(QMainWindow):
         
         
         self.layout = QGridLayout()
-        self.button = QPushButton("click me")  
+        self.button = QPushButton("Add Item")  
         self.layout.addWidget(self.button)
         self.button.clicked.connect(self.clickbtn)
-        self.showdata = QPushButton("show data")
+        self.showdata = QPushButton("Inventory Datas")
         self.showdata.clicked.connect(self.showd)
         self.layout.addWidget(self.showdata)
         self.mainwidget.setLayout(self.layout) 
+        
+        
+ 
 
     
     def clickbtn(self):
-        self.window = SubWindow("test")
+        self.window = SubWindow("Add Item To Inventory")
         self.window.show()
         
     def showd(self):
@@ -62,13 +71,17 @@ class SubWindow(QWidget):
         self.mainLayout = QVBoxLayout()
         
        
-        self.serial = myLayout(QHBoxLayout,'Serial')
+        self.serial = myLayout(QHBoxLayout,'Serial Number')
         self.description = myLayout(QHBoxLayout,'Description')  
         self.cb = QComboBox(self)
+
+        self.calender = QCalendarWidget()
+        
 
         self.mainLayout.addWidget(self.cb)
         self.mainLayout.addLayout(self.serial.layout)
         self.mainLayout.addLayout(self.description.layout)
+        self.mainLayout.addWidget(self.calender)
         
         self.dbc = DBConnector()
         self.combo = self.dbc.execute("select * from component")
@@ -84,19 +97,22 @@ class SubWindow(QWidget):
 
 
     def save(self):
-        ComponentID = self.dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
-        ComponentID = ComponentID[0][0]
-        self.kwargs = {'query':"insert into componentdata(serial,description,componentID) values('%s','%s',%d)"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID)}
-        self.worker = Worker(self.dbc.execute,**self.kwargs)
-        self.worker.finished.connect(self.succesmsg)
-        self.worker.finished.connect(self.close)
-        self.worker.start()
+            date = self.calender.selectedDate()
+            date = date.toString(Qt.ISODate)
+            ComponentID = self.dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
+            ComponentID = ComponentID[0][0]
+            self.kwargs = {'query':"insert into componentdata(serial,description,componentID,in_date) values('%s','%s',%d,'%s')"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID,date)}
+            self.worker = Worker(self.dbc.execute,**self.kwargs)
+            # self.worker.finished.connect(self.succesmsg)
+            self.worker.finished.connect(self.close)
+            self.worker.start()
+
         
     def succesmsg(self):
-       msg= QErrorMessage()
-       
-    
-       msg.exec_()
+       self.msg= QMessageBox()
+       self.msg.setWindowTitle("Status")
+       self.msg.setText("DONE")
+       self.msg.show()
 
 class myLayout():
     def __init__(self,Layout,labelname):
@@ -107,6 +123,7 @@ class myLayout():
         self.layoutLable = QLabel(labelname)
         self.layoutLine = QLineEdit()
         self.layoutLine.move(0,50)
+     
         self.layout.addWidget(self.layoutLable)
         self.layout.addWidget(self.layoutLine)
         
@@ -119,17 +136,19 @@ class tableview(QWidget):
         self.layout = QVBoxLayout()
         self.table = QTableWidget()
         self.databasec = DBConnector()
-        self.results = self.databasec.execute('select serial,description,component_name from componentdata inner join  component on  componentdata.componentID=component.componentID;')
+        self.results = self.databasec.execute('select serial,description,component_name,in_date from componentdata inner join  component on  componentdata.componentID=component.componentID;')
         self.rows = self.results.fetchall()
         self.table.setColumnCount(len(self.rows[0]))
         self.table.setRowCount(len(self.rows))
-        self.columns = [i[0] for i in self.results.description]
+        self.columns = [i[0].upper() for i in self.results.description]
         print(self.columns)
         for row in self.rows:
            print(row)
         count = 0
 
         self.table.setHorizontalHeaderLabels(self.columns)
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)       
         for row in self.rows:
 
             x = 0
@@ -137,9 +156,7 @@ class tableview(QWidget):
                 self.table.setItem(count,x,QTableWidgetItem(str(i)))
                 x+=1
             count+=1
-        # self.table.setItem(count,0,QTableWidgetItem("HELLO"))
-        # self.table.setItem(count,1,QTableWidgetItem("HELLO"))
-
+     
         self.table
         self.layout.addWidget(self.table)
         self.setLayout(self.layout)

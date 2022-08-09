@@ -1,9 +1,11 @@
+from distutils.log import error
 from PyQt5.QtCore import (
     QThread,
     QObject,
     pyqtSignal,
     pyqtSlot
 )
+from PyQt5.QtWidgets import QErrorMessage
 
 
 class WorkerSignals(QObject):
@@ -26,4 +28,5 @@ class Worker(QThread):
         try:
             self.fn(**self.kwargs)
         except:
-            print("Something went wrong with the Qthread worker class")
+           print('error occured')
+           
