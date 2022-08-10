@@ -7,6 +7,8 @@ from PyQt5.QtCore import (
 )
 from PyQt5.QtWidgets import QErrorMessage
 
+import time
+import traceback, sys
 
 class WorkerSignals(QObject):
     finished = pyqtSignal()
@@ -28,5 +30,7 @@ class Worker(QThread):
         try:
             self.fn(**self.kwargs)
         except:
-           print('error occured')
-           
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            print((exctype, value, traceback.format_exc()))

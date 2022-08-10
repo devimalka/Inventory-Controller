@@ -17,6 +17,8 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QAbstractScrollArea,
     QCalendarWidget,
+    QListWidget,
+    QListView
     )
 
 from PyQt5 import QtWidgets
@@ -25,10 +27,8 @@ from PyQt5.QtCore import QDate,Qt
 import sys
 from QmultiThreading import Worker,WorkerSignals
 
-from sql import DBConnector
-
-dbc = DBConnector()
-
+from pc_add import addPc
+from sql import dbc
 class Mainwindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -47,12 +47,21 @@ class Mainwindow(QMainWindow):
         self.showdata = QPushButton("Inventory Datas")
         self.showdata.clicked.connect(self.showd)
         self.layout.addWidget(self.showdata)
+        self.addpc = QPushButton("add pc")
+        self.addpc.clicked.connect(self.adpc)
+        self.layout.addWidget(self.addpc)
         self.mainwidget.setLayout(self.layout) 
         
         
  
+      
 
-    
+    def adpc(self):
+        results = dbc.execute("select * from computer_type;")
+        results = results.fetchall()
+        self.apc = addPc()
+        self.apc.show()
+      
     def clickbtn(self):
         self.window = SubWindow("Add Item To Inventory")
         self.window.show()
@@ -93,6 +102,8 @@ class SubWindow(QWidget):
         self.savebutton.clicked.connect(self.save)
         self.mainLayout.addWidget(self.savebutton)
         
+       
+        
         self.setLayout(self.mainLayout)        
         
 
@@ -102,13 +113,15 @@ class SubWindow(QWidget):
             date = date.toString(Qt.ISODate)
             ComponentID = dbc.execute("select componentID from component where component_name='%s'"%(self.cb.currentText())).fetchall()
             ComponentID = ComponentID[0][0]
-            self.kwargs = {'query':"insert into componentdata(serial,description,componentID,in_date) values('%s','%s',%d,'%s')"%(self.serial.layoutLine.text(),self.description.layoutLine.text(),ComponentID,date)}
+            self.kwargs = {'query':"insert into componentdata(serial,description,componentID,in_date) values('%s','%s',%d,'%s')"%(self.serial.layoutLine.text(),self.description.layoutLine.text().upper(),ComponentID,date)}
             self.worker = Worker(dbc.execute,**self.kwargs)
             # self.worker.finished.connect(self.succesmsg)
             self.worker.finished.connect(self.close)
             self.worker.start()
 
-        
+    def error(self):
+        print("HHHHHHHH")
+    
     def succesmsg(self):
        self.msg= QMessageBox()
        self.msg.setWindowTitle("Status")
@@ -136,8 +149,7 @@ class tableview(QWidget):
         self.setWindowTitle("Show data")
         self.layout = QVBoxLayout()
         self.table = QTableWidget()
-        self.databasec = DBConnector()
-        self.results = self.databasec.execute('select serial,description,component_name,in_date from componentdata inner join  component on  componentdata.componentID=component.componentID;')
+        self.results = dbc.execute('select serial,description,component_name,in_date from componentdata inner join  component on  componentdata.componentID=component.componentID;')
         self.rows = self.results.fetchall()
         self.table.setColumnCount(len(self.rows[0]))
         self.table.setRowCount(len(self.rows))

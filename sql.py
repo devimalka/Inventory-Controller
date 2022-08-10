@@ -27,12 +27,17 @@ class DBConnector():
         result = None
         try:
             result=self.cursor.execute(query)
-           
             self.conn.commit()
         except sqlite3.Error as err:
             print(err)
         if result:
             return result
+    
+    def close(self):
+        self.cursor.close()
+        self.conn.commit()
             
             
-            
+
+
+dbc = DBConnector()
