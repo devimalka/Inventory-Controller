@@ -44,6 +44,7 @@ class addPc(QWidget):
     def findComponent(self):
         
         serial = self.itemserial.text()
+        self.itemserial.setText('')
         if serial not in self.seriallist:
             data = dbc.execute("select serial,description,in_date from componentdata where serial='%s'"%(serial))
             data = data.fetchall()

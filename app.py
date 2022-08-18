@@ -116,11 +116,12 @@ class SubWindow(QWidget):
             self.kwargs = {'query':"insert into componentdata(serial,description,componentID,in_date) values('%s','%s',%d,'%s')"%(self.serial.layoutLine.text(),self.description.layoutLine.text().upper(),ComponentID,date)}
             self.worker = Worker(dbc.execute,**self.kwargs)
             # self.worker.finished.connect(self.succesmsg)
-            self.worker.finished.connect(self.close)
+            self.worker.finished.connect(self.succesmsg)
             self.worker.start()
+            self.serial.layoutLine.setText('')
+            self.description.layoutLine.setText('')
 
-    def error(self):
-        print("HHHHHHHH")
+
     
     def succesmsg(self):
        self.msg= QMessageBox()
@@ -152,13 +153,14 @@ class tableview(QWidget):
         self.results = dbc.execute('select serial,description,component_name,in_date from componentdata inner join  component on  componentdata.componentID=component.componentID;')
         self.rows = self.results.fetchall()
         self.table.setColumnCount(len(self.rows[0]))
+        self.columnwidth = 0
+        for i in range(self.table.columnCount()):
+            self.columnwidth += self.table.columnWidth(i)
+            print(self.columnwidth)
+        self.setFixedWidth(self.columnwidth+int((self.columnwidth/2)))
         self.table.setRowCount(len(self.rows))
         self.columns = [i[0].upper() for i in self.results.description]
-        print(self.columns)
-        for row in self.rows:
-           print(row)
         count = 0
-
         self.table.setHorizontalHeaderLabels(self.columns)
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)       
